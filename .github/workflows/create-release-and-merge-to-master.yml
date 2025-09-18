@@ -5,6 +5,10 @@ on:
     branches:
       - develop
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   create-release-and-merge:
     runs-on: ubuntu-latest
@@ -19,12 +23,12 @@ jobs:
       - name: Verificar palabra clave en commit
         id: check-keyword
         run: |
-          if [[ "${{ github.event.head_commit.message }}" == *"CREAR_RELEASE"* ]]; then
+          if [[ "${{ github.event.head_commit.message }}" == *"CREAR RELEASE"* ]]; then
             echo "keyword_found=true" >> $GITHUB_OUTPUT
-            echo "✅ Palabra clave 'CREAR_RELEASE' encontrada en el commit"
+            echo "Palabra clave 'CREAR RELEASE' encontrada en el commit"
           else
             echo "keyword_found=false" >> $GITHUB_OUTPUT
-            echo "❌ Palabra clave 'CREAR_RELEASE' no encontrada en el commit"
+            echo "Palabra clave 'CREAR RELEASE' no encontrada en el commit"
             echo "Mensaje del commit: ${{ github.event.head_commit.message }}"
           fi
       
@@ -33,16 +37,17 @@ jobs:
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
       
       - name: Crear rama release
         if: steps.check-keyword.outputs.keyword_found == 'true'
         run: |
-          echo "🚀 Creando rama release..."
+          echo "Creando rama release..."
           git checkout develop
           git pull origin develop
           git checkout -b release
           git push -f -u origin release
-          echo "✅ Rama release creada exitosamente"
+          echo "Rama release creada exitosamente"
       
       - name: Mezclar develop en release
         if: steps.check-keyword.outputs.keyword_found == 'true'
@@ -61,23 +66,23 @@ jobs:
       - name: Ejecutar pruebas unitarias en release
         if: steps.check-keyword.outputs.keyword_found == 'true'
         run: |
-          echo "🧪 Ejecutando pruebas unitarias en rama release..."
+          echo "Ejecutando pruebas unitarias en rama release..."
           python -m unittest discover -s tests -v
-          echo "✅ Todas las pruebas pasaron exitosamente en release"
+          echo "Todas las pruebas pasaron exitosamente en release"
       
       - name: Ejecutar análisis de cobertura en release
         if: steps.check-keyword.outputs.keyword_found == 'true'
         run: |
-          echo "📊 Ejecutando análisis de cobertura en release..."
+          echo "Ejecutando análisis de cobertura en release..."
           python -m coverage run -m unittest discover -s tests -v
           python -m coverage html
-          echo "✅ Análisis de cobertura completado en release"
+          echo "Análisis de cobertura completado en release"
       
       - name: Verificar que las pruebas pasaron
         if: steps.check-keyword.outputs.keyword_found == 'true'
         id: test-status
         run: |
-          echo "✅ Todas las verificaciones completadas exitosamente"
+          echo "Todas las verificaciones completadas exitosamente"
           echo "tests_passed=true" >> $GITHUB_OUTPUT
       
       - name: Mezclar release a master
@@ -91,7 +96,7 @@ jobs:
       - name: Crear tag de release
         if: steps.check-keyword.outputs.keyword_found == 'true' && steps.test-status.outputs.tests_passed == 'true'
         run: |
-          echo "🏷️ Creando tag de release..."
+          echo "Creando tag de release..."
           # Obtener fecha actual para el tag
           RELEASE_DATE=$(date +"%Y%m%d_%H%M%S")
           TAG_NAME="release_${RELEASE_DATE}"
@@ -101,34 +106,34 @@ jobs:
           git tag -a "$TAG_NAME" -m "Release automático creado el $(date)"
           git push origin "$TAG_NAME"
           
-          echo "✅ Tag $TAG_NAME creado exitosamente"
+          echo "Tag $TAG_NAME creado exitosamente"
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
       
       - name: Limpiar rama release
         if: steps.check-keyword.outputs.keyword_found == 'true' && steps.test-status.outputs.tests_passed == 'true'
         run: |
-          echo "🧹 Limpiando rama release temporal..."
+          echo "Limpiando rama release temporal..."
           git push origin --delete release
-          echo "✅ Rama release eliminada"
+          echo "Rama release eliminada"
       
       - name: Notificar éxito
         if: steps.check-keyword.outputs.keyword_found == 'true' && steps.test-status.outputs.tests_passed == 'true'
         run: |
-          echo "🎉 ¡Release creado exitosamente!"
-          echo "✅ Rama develop mezclada a master"
-          echo "✅ Tag de release creado"
-          echo "✅ Todas las pruebas pasaron correctamente"
-          echo "✅ Rama release temporal eliminada"
+          echo "Release creado exitosamente!"
+          echo "Rama develop mezclada a master"
+          echo "Tag de release creado"
+          echo "Todas las pruebas pasaron correctamente"
+          echo "Rama release temporal eliminada"
       
       - name: Notificar que no se ejecutó
         if: steps.check-keyword.outputs.keyword_found == 'false'
         run: |
-          echo "ℹ️ Workflow no ejecutado"
-          echo "Para crear un release automático, incluye la palabra clave 'CREAR_RELEASE' en tu mensaje de commit en develop"
+          echo "Workflow no ejecutado"
+          echo "Para crear un release automático, incluye la palabra clave 'CREAR RELEASE' en tu mensaje de commit en develop"
       
       - name: Notificar fallo en pruebas
         if: steps.check-keyword.outputs.keyword_found == 'true' && steps.test-status.outputs.tests_passed != 'true'
         run: |
-          echo "❌ Las pruebas fallaron"
+          echo "Las pruebas fallaron"
           echo "No se puede proceder con el merge a master"
           echo "Por favor, revisa y corrige los errores antes de intentar nuevamente"
