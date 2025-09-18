@@ -1,5 +1,7 @@
 # MISW4101-202514-Grupo000
 Espacio de trabajo del grupo 00
+
+<!-- Prueba de workflow automático - 18/09/2025 -->
  
 ## Reporte
 * Ingrese a [Jenkins](http://157.253.238.75:8080/jenkins-misovirtual/).
