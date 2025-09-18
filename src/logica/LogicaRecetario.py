@@ -274,26 +274,152 @@ class LogicaRecetario(FachadaRecetario):
             session.commit()
             return True
         return False
-    
+
     def eliminar_ingrediente(self, id_ingrediente):
-        ''' Elimina un ingrediente de la lista de ingredientes
+        """Elimina un ingrediente de la lista de ingredientes
         Parámetros:
             id_ingrediente (int): El índice del ingrediente que se desea eliminar
-        '''
+        """
         # Obtener todos los ingredientes para encontrar el ingrediente por índice
         ingredientes = session.query(Ingrediente).all()
         if 0 <= id_ingrediente < len(ingredientes):
             ingrediente_obj = ingredientes[id_ingrediente]
-            
+
             # Primero eliminar todas las relaciones ingrediente-receta
-            ingredientes_receta = session.query(IngredienteReceta).filter(
-                IngredienteReceta.ingrediente_id == ingrediente_obj.id
-            ).all()
+            ingredientes_receta = (
+                session.query(IngredienteReceta)
+                .filter(IngredienteReceta.ingrediente_id == ingrediente_obj.id)
+                .all()
+            )
             for ingrediente_receta in ingredientes_receta:
                 session.delete(ingrediente_receta)
-            
+
             # Luego eliminar el ingrediente
             session.delete(ingrediente_obj)
             session.commit()
             return True
         return False
+
+    def dar_preparacion(self, id_receta, cantidad_personas):
+        """Retorna los datos de preparación de una receta para cantidad de personas que entra como parámetro
+        Parámetros:
+            id_receta: identificador de la receta que se va a preparar
+            cantidad_personas: cantidad personas para las que se va a preparar la receta
+        Retorna:
+            (dict): diccionario con los datos de preparación de la receta: nombre, cantidad personas, calorias, costo, tiempo de preparación,
+                    (list) ingredientes de la receta
+        """
+        # Validar parámetros de entrada
+        if cantidad_personas <= 0:
+            return None
+
+        # Obtener todas las recetas para encontrar la receta por índice
+        recetas = session.query(Receta).all()
+        if 0 <= id_receta < len(recetas):
+            receta_obj = recetas[id_receta]
+
+            # Calcular factor de escalamiento
+            factor_escalamiento = cantidad_personas / receta_obj.numero_personas
+
+            # Calcular calorías escaladas
+            calorias_escaladas = (
+                int(receta_obj.calorias_porcion * factor_escalamiento)
+                if receta_obj.calorias_porcion
+                else 0
+            )
+
+            # Calcular tiempo escalado
+            tiempo_escalado = self._escalar_tiempo(
+                receta_obj.tiempo_preparacion, factor_escalamiento
+            )
+
+            # Obtener ingredientes de la receta
+            ingredientes_receta = (
+                session.query(IngredienteReceta)
+                .filter(IngredienteReceta.receta_id == receta_obj.id)
+                .all()
+            )
+
+            # Procesar ingredientes y calcular costo total
+            datos_ingredientes = []
+            costo_total = 0
+
+            for ingrediente_receta in ingredientes_receta:
+                # Obtener los datos del ingrediente relacionado
+                ingrediente = (
+                    session.query(Ingrediente)
+                    .filter(Ingrediente.id == ingrediente_receta.ingrediente_id)
+                    .first()
+                )
+
+                if ingrediente:
+                    # Calcular cantidad escalada
+                    cantidad_original = float(ingrediente_receta.cantidad)
+                    cantidad_escalada = cantidad_original * factor_escalamiento
+
+                    # Calcular valor total del ingrediente
+                    valor_total = int(ingrediente.valor_unidad * cantidad_escalada)
+                    costo_total += valor_total
+
+                    # Agregar ingrediente a la lista
+                    ingrediente_data = {
+                        "nombre": ingrediente.nombre,
+                        "unidad": ingrediente.unidad_medida,
+                        "cantidad": str(cantidad_escalada),
+                        "valor": valor_total,
+                    }
+                    datos_ingredientes.append(ingrediente_data)
+
+            # Construir respuesta
+            preparacion_data = {
+                "receta": receta_obj.nombre,
+                "personas": cantidad_personas,
+                "calorias": calorias_escaladas,
+                "costo": costo_total,
+                "tiempo_preparacion": tiempo_escalado,
+                "datos_ingredientes": datos_ingredientes,
+            }
+
+            return preparacion_data
+
+        return None
+
+    def _escalar_tiempo(self, tiempo_original, factor):
+        """Escala el tiempo de preparación según el factor dado
+        Parámetros:
+            tiempo_original (str): Tiempo en formato HH:MM:SS
+            factor (float): Factor de escalamiento
+        Retorna:
+            (str): Tiempo escalado en formato HH:MM:SS
+        """
+        try:
+            # Parsear tiempo original
+            partes = tiempo_original.split(":")
+            if len(partes) == 3:
+                horas = int(partes[0])
+                minutos = int(partes[1])
+                segundos = int(partes[2])
+            elif len(partes) == 2:
+                horas = 0
+                minutos = int(partes[0])
+                segundos = int(partes[1])
+            else:
+                # Formato inválido, retornar tiempo original
+                return tiempo_original
+
+            # Convertir a segundos totales
+            segundos_totales = horas * 3600 + minutos * 60 + segundos
+
+            # Aplicar factor de escalamiento
+            segundos_escalados = int(segundos_totales * factor)
+
+            # Convertir de vuelta a HH:MM:SS
+            horas_escaladas = segundos_escalados // 3600
+            minutos_escalados = (segundos_escalados % 3600) // 60
+            segundos_escalados = segundos_escalados % 60
+
+            return f"{horas_escaladas:02d}:{minutos_escalados:02d}:{segundos_escalados:02d}"
+
+        except (ValueError, IndexError):
+            # Si hay error en el parsing, retornar tiempo original
+            return tiempo_original
