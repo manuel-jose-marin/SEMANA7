@@ -42,7 +42,7 @@ jobs:
       - name: Mezclar develop en rama de funcionalidad
         if: steps.check-keyword.outputs.keyword_found == 'true'
         run: |
-          echo "Mezclando develop en rama de funcionalidad...."
+          echo "Mezclando develop en rama de funcionalidad....!!!!!!!!"
           git fetch origin develop
           git merge origin/develop --no-edit
           echo "Develop mezclado en rama de funcionalidad"
