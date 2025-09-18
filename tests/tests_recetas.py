@@ -323,7 +323,7 @@ class TestRecetas(unittest.TestCase):
         preparacion_data = self.logica.dar_preparacion(0, 6)
 
         # Calcular costo esperado
-        # Tomate chonto: 1 * 3 * 5000 = 15000
+        # Tomate chonto: 1 * 3 * 5000 = 150000
         # Cebolla larga: 0.5 * 3 * 4000 = 6000
         # Aceite de oliva: 0.1 * 3 * 18000 = 5400
         # Total: 15000 + 6000 + 5400 = 26400
