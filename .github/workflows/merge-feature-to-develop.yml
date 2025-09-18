@@ -25,10 +25,10 @@ jobs:
         run: |
           if [[ "${{ github.event.head_commit.message }}" == *"LISTO_PARA_DESARROLLO"* ]]; then
             echo "keyword_found=true" >> $GITHUB_OUTPUT
-            echo "✅ Palabra clave 'LISTO_PARA_DESARROLLO' encontrada en el commit"
+            echo "Palabra clave 'LISTO_PARA_DESARROLLO' encontrada en el commit"
           else
             echo "keyword_found=false" >> $GITHUB_OUTPUT
-            echo "❌ Palabra clave 'LISTO_PARA_DESARROLLO' no encontrada en el commit"
+            echo "Palabra clave 'LISTO_PARA_DESARROLLO' no encontrada en el commit"
             exit 0
           fi
       
@@ -42,19 +42,19 @@ jobs:
       - name: Mezclar develop en rama de funcionalidad
         if: steps.check-keyword.outputs.keyword_found == 'true'
         run: |
-          echo "🔄 Mezclando develop en rama de funcionalidad...."
+          echo "Mezclando develop en rama de funcionalidad...."
           git fetch origin develop
           git merge origin/develop --no-edit
-          echo "✅ Develop mezclado en rama de funcionalidad"
+          echo "Develop mezclado en rama de funcionalidad"
       
       - name: Instalar dependencias y ejecutar pruebas
         if: steps.check-keyword.outputs.keyword_found == 'true'
         run: |
-          echo "🧪 Ejecutando pruebas unitarias en rama de funcionalidad..."
+          echo "Ejecutando pruebas unitarias en rama de funcionalidad..."
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           python -m unittest discover -s tests -v
-          echo "✅ Todas las pruebas pasaron exitosamente"
+          echo "Todas las pruebas pasaron exitosamente"
       
       - name: Mezclar rama de funcionalidad a develop
         if: steps.check-keyword.outputs.keyword_found == 'true'
@@ -67,6 +67,6 @@ jobs:
       - name: Notificar éxito
         if: steps.check-keyword.outputs.keyword_found == 'true'
         run: |
-          echo "🎉 ¡Merge exitoso!"
+          echo "Merge exitoso!"
           echo "Rama ${{ github.ref_name }} mezclada exitosamente a develop"
           echo "Todas las pruebas pasaron correctamente"
