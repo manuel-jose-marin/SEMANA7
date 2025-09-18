@@ -23,12 +23,12 @@ jobs:
       - name: Verificar palabra clave en commit
         id: check-keyword
         run: |
-          if [[ "${{ github.event.head_commit.message }}" == *"CREAR_RELEASE"* ]]; then
+          if [[ "${{ github.event.head_commit.message }}" == *"CREAR RELEASE"* ]]; then
             echo "keyword_found=true" >> $GITHUB_OUTPUT
-            echo "Palabra clave 'CREAR_RELEASE' encontrada en el commit"
+            echo "Palabra clave 'CREAR RELEASE' encontrada en el commit"
           else
             echo "keyword_found=false" >> $GITHUB_OUTPUT
-            echo "Palabra clave 'CREAR_RELEASE' no encontrada en el commit"
+            echo "Palabra clave 'CREAR RELEASE' no encontrada en el commit"
             echo "Mensaje del commit: ${{ github.event.head_commit.message }}"
           fi
       
@@ -129,7 +129,7 @@ jobs:
         if: steps.check-keyword.outputs.keyword_found == 'false'
         run: |
           echo "Workflow no ejecutado"
-          echo "Para crear un release automático, incluye la palabra clave 'CREAR_RELEASE' en tu mensaje de commit en develop"
+          echo "Para crear un release automático, incluye la palabra clave 'CREAR RELEASE' en tu mensaje de commit en develop"
       
       - name: Notificar fallo en pruebas
         if: steps.check-keyword.outputs.keyword_found == 'true' && steps.test-status.outputs.tests_passed != 'true'
