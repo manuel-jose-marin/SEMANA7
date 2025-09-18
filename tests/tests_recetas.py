@@ -13,12 +13,55 @@ class TestRecetas(unittest.TestCase):
 
     def setUp(self):
         from src.modelo.ingrediente_receta import IngredienteReceta
+        from src.modelo.ingrediente import Ingrediente
 
         session.query(IngredienteReceta).delete()
         session.query(Receta).delete()
         session.commit()
 
         self.logica = LogicaRecetario()
+
+        # Crear ingredientes básicos para las pruebas si no existen
+        self._crear_ingredientes_basicos()
+
+    def _crear_ingredientes_basicos(self):
+        """Crea ingredientes básicos necesarios para las pruebas"""
+        from src.modelo.ingrediente import Ingrediente
+
+        ingredientes_basicos = [
+            ("Pollo", "libra", 8500, "Carnicería Central"),
+            ("Cebolla", "unidad", 500, "Mercado"),
+            ("Tomate chonto", "libra", 5000, "Fruver El mejor"),
+            ("Cebolla larga", "libra", 4000, "Fruver El mejor"),
+            ("Sal", "libra", 1200, "Supermercado"),
+            ("Aceite de oliva", "botella", 18000, "Supermercado"),
+            ("Harina de trigo", "libra", 2500, "Supermercado"),
+            ("Mozzarella", "libra", 12000, "Supermercado"),
+        ]
+
+        for nombre, unidad, valor, sitio in ingredientes_basicos:
+            # Solo crear si no existe
+            existente = (
+                session.query(Ingrediente).filter(Ingrediente.nombre == nombre).first()
+            )
+            if not existente:
+                ingrediente = Ingrediente(
+                    nombre=nombre,
+                    unidad_medida=unidad,
+                    valor_unidad=valor,
+                    sitio_compra=sitio,
+                )
+                session.add(ingrediente)
+
+        session.commit()
+
+    def _buscar_ingrediente_por_nombre(self, nombre):
+        """Busca un ingrediente por nombre y retorna su diccionario"""
+        ingredientes = self.logica.dar_ingredientes()
+        for ingrediente in ingredientes:
+            if ingrediente["nombre"] == nombre:
+                return ingrediente
+        raise ValueError(f"Ingrediente '{nombre}' no encontrado")
 
     def tearDown(self):
         session.rollback()
@@ -144,11 +187,10 @@ class TestRecetas(unittest.TestCase):
             )
         )
 
-        # Usar ingredientes existentes (Pollo en índice 6, Cebolla en índice 18)
-        # Agregar ingredientes a la receta
+        # Buscar ingredientes por nombre
         receta_dict = self.logica.dar_receta(0)
-        ingrediente1_dict = self.logica.dar_ingrediente(6)  # Pollo
-        ingrediente2_dict = self.logica.dar_ingrediente(18)  # Cebolla
+        ingrediente1_dict = self._buscar_ingrediente_por_nombre("Pollo")
+        ingrediente2_dict = self._buscar_ingrediente_por_nombre("Cebolla")
 
         self.assertTrue(
             self.logica.agregar_ingrediente_receta(receta_dict, ingrediente1_dict, "2")
@@ -273,10 +315,10 @@ class TestRecetas(unittest.TestCase):
             self.logica.crear_receta("Pasta", "00:20:00", "3", "300", "Cocinar pasta")
         )
 
-        # Usar ingredientes existentes (Tomate chonto en índice 0, Cebolla larga en índice 1)
+        # Usar ingredientes existentes
         receta_dict = self.logica.dar_receta(0)
-        tomate_dict = self.logica.dar_ingrediente(0)  # Tomate chonto
-        cebolla_dict = self.logica.dar_ingrediente(1)  # Cebolla larga
+        tomate_dict = self._buscar_ingrediente_por_nombre("Tomate chonto")
+        cebolla_dict = self._buscar_ingrediente_por_nombre("Cebolla larga")
 
         self.logica.agregar_ingrediente_receta(receta_dict, tomate_dict, "1.5")
         self.logica.agregar_ingrediente_receta(receta_dict, cebolla_dict, "2")
@@ -311,9 +353,9 @@ class TestRecetas(unittest.TestCase):
 
         # Usar ingredientes existentes
         receta_dict = self.logica.dar_receta(0)
-        tomate_dict = self.logica.dar_ingrediente(0)  # Tomate chonto (5000)
-        cebolla_dict = self.logica.dar_ingrediente(1)  # Cebolla larga (4000)
-        aceite_dict = self.logica.dar_ingrediente(14)  # Aceite de oliva (18000)
+        tomate_dict = self._buscar_ingrediente_por_nombre("Tomate chonto")
+        cebolla_dict = self._buscar_ingrediente_por_nombre("Cebolla larga")
+        aceite_dict = self._buscar_ingrediente_por_nombre("Aceite de oliva")
 
         self.logica.agregar_ingrediente_receta(receta_dict, tomate_dict, "1")
         self.logica.agregar_ingrediente_receta(receta_dict, cebolla_dict, "0.5")
@@ -353,9 +395,9 @@ class TestRecetas(unittest.TestCase):
             self.logica.crear_receta("Sopa", "00:45:00", "5", "200", "Hervir")
         )
 
-        # Usar ingrediente existente (Sal en índice 15)
+        # Usar ingrediente existente
         receta_dict = self.logica.dar_receta(0)
-        sal_dict = self.logica.dar_ingrediente(15)  # Sal (1200)
+        sal_dict = self._buscar_ingrediente_por_nombre("Sal")
         self.logica.agregar_ingrediente_receta(receta_dict, sal_dict, "1.5")
 
         # Solicitar preparación para 7 personas (factor: 7/5 = 1.4)
@@ -379,15 +421,15 @@ class TestRecetas(unittest.TestCase):
 
         # Usar ingredientes existentes
         receta_dict = self.logica.dar_receta(0)
-        ingredientes_indices = [
-            13,
-            11,
-            0,
-            14,
-        ]  # Harina, Queso parmesano, Tomate chonto, Aceite de oliva
+        ingredientes_nombres = [
+            "Harina de trigo",
+            "Mozzarella",
+            "Tomate chonto",
+            "Aceite de oliva",
+        ]
 
-        for i, indice in enumerate(ingredientes_indices):
-            ingrediente_dict = self.logica.dar_ingrediente(indice)
+        for i, nombre in enumerate(ingredientes_nombres):
+            ingrediente_dict = self._buscar_ingrediente_por_nombre(nombre)
             self.logica.agregar_ingrediente_receta(
                 receta_dict, ingrediente_dict, str(i + 1)
             )
