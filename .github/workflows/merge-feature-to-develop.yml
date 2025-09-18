@@ -42,7 +42,7 @@ jobs:
       - name: Actualizar rama de funcionalidad con develop
         if: steps.check-keyword.outputs.keyword_found == 'true'
         run: |
-          echo "🔄 Actualizando rama de funcionalidad con develop..."
+          echo "🔄 Actualizando rama de funcionalidad con develop...."
           git fetch origin develop
           git checkout ${{ github.ref_name }}
           git merge origin/develop --no-edit
