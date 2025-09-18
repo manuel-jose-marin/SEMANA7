@@ -1,0 +1,87 @@
+name: Merge Feature Branch to Develop
+
+on:
+  push:
+    branches:
+      - 'historia**'
+
+jobs:
+  merge-to-develop:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Verificar palabra clave en commit
+        id: check-keyword
+        run: |
+          if [[ "${{ github.event.head_commit.message }}" == *"LISTO_PARA_DESARROLLO"* ]]; then
+            echo "keyword_found=true" >> $GITHUB_OUTPUT
+            echo "✅ Palabra clave 'LISTO_PARA_DESARROLLO' encontrada en el commit"
+          else
+            echo "keyword_found=false" >> $GITHUB_OUTPUT
+            echo "❌ Palabra clave 'LISTO_PARA_DESARROLLO' no encontrada en el commit"
+            echo "Mensaje del commit: ${{ github.event.head_commit.message }}"
+          fi
+      
+      - name: Configurar Git
+        if: steps.check-keyword.outputs.keyword_found == 'true'
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+      
+      - name: Actualizar rama de funcionalidad con develop
+        if: steps.check-keyword.outputs.keyword_found == 'true'
+        run: |
+          echo "🔄 Actualizando rama de funcionalidad con develop..."
+          git fetch origin develop
+          git checkout ${{ github.ref_name }}
+          git merge origin/develop --no-edit
+          git push origin ${{ github.ref_name }}
+          echo "✅ Rama de funcionalidad actualizada con develop"
+      
+      - name: Instalar dependencias Python
+        if: steps.check-keyword.outputs.keyword_found == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Ejecutar pruebas unitarias
+        if: steps.check-keyword.outputs.keyword_found == 'true'
+        run: |
+          echo "🧪 Ejecutando pruebas unitarias..."
+          python -m unittest discover -s tests -v
+          echo "✅ Todas las pruebas pasaron exitosamente"
+      
+      - name: Ejecutar análisis de cobertura
+        if: steps.check-keyword.outputs.keyword_found == 'true'
+        run: |
+          echo "📊 Ejecutando análisis de cobertura..."
+          python -m coverage run -m unittest discover -s tests -v
+          python -m coverage html
+          echo "✅ Análisis de cobertura completado"
+      
+      - name: Mezclar rama de funcionalidad a develop
+        if: steps.check-keyword.outputs.keyword_found == 'true'
+        uses: tukasz/direct-merge-action@master
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          source-branch: ${{ github.ref_name }}
+          target-branch: develop
+      
+      - name: Notificar éxito
+        if: steps.check-keyword.outputs.keyword_found == 'true'
+        run: |
+          echo "🎉 ¡Merge exitoso!"
+          echo "Rama ${{ github.ref_name }} mezclada exitosamente a develop"
+          echo "Todas las pruebas pasaron correctamente"
+      
+      - name: Notificar que no se ejecutó
+        if: steps.check-keyword.outputs.keyword_found == 'false'
+        run: |
+          echo "ℹ️ Workflow no ejecutado"
+          echo "Para activar el merge automático, incluye la palabra clave 'LISTO_PARA_DESARROLLO' en tu mensaje de commit"
